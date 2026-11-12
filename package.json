@@ -1,6 +1,6 @@
 {
   "name": "pi-web-access-lazy",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Lazy tool loading for pi-web-access.",
   "type": "module",
   "scripts": {
