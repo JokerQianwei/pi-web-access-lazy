@@ -6,6 +6,11 @@ Pi starts with one small `load_web_tools` tool. The search, verification,
 fetch, and content-retrieval tools become active only after the model calls the
 loader.
 
+Reloading or resuming a session restores the web tools declared on its current
+branch. Sessions that have not loaded web tools stay cold across reloads.
+For the `joker-dmit` and `ryan-dmit` providers, web tools are enabled before
+each agent run because their bridges require tool definitions at query start.
+
 ## Install
 
 Remove the original package first. Installing both packages registers the same
@@ -44,7 +49,7 @@ requires working Pi authentication. Override the model with
 
 ## Upstream version
 
-Version 0.1.0 bundles `pi-web-access` 0.18.0. Upstream is imported through a
+Version 0.1.1 bundles `pi-web-access` 0.18.0. Upstream is imported through a
 small `ExtensionAPI` proxy; its implementation is not copied into this
 repository.
 

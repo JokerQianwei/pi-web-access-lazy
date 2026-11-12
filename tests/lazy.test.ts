@@ -7,6 +7,7 @@ import type {
 import { Type } from "typebox";
 import {
   initialActiveTools,
+  declaredToolNames,
   interceptToolRegistration,
   newlyAvailableTools,
   withoutPromptMetadata,
@@ -73,4 +74,42 @@ test("newlyAvailableTools returns registered inactive tools in source order", ()
     ),
     ["source_check", "fetch_content"],
   );
+});
+
+const deferred = new Set(["custom_search", "fetch_content"]);
+const refreshed = ["read", "custom_search", "bash", "fetch_content", "load_web_tools"];
+
+// 模拟 registry 在 reload 时激活所有直接注册工具；历史声明决定网页工具子集。
+function restore(branch: Parameters<typeof declaredToolNames>[0]) {
+  return initialActiveTools(refreshed, deferred, "load_web_tools", declaredToolNames(branch));
+}
+
+test("fresh sessions and never-loaded reloads stay cold", () => {
+  assert.deepEqual(restore([]), ["read", "bash", "load_web_tools"]);
+  assert.deepEqual(restore([
+    { type: "message", message: { role: "system", toolsAdded: [{ name: "read" }] } },
+    { type: "message", message: { role: "user" } },
+  ]), ["read", "bash", "load_web_tools"]);
+});
+
+test("loaded sessions restore the exact declared subset in active order", () => {
+  assert.deepEqual(restore([
+    { type: "message", message: { role: "system", toolsAdded: [{ name: "custom_search" }] } },
+  ]), ["read", "custom_search", "bash", "load_web_tools"]);
+});
+
+test("declarations replay removals, re-additions and ignore non-system messages", () => {
+  assert.deepEqual(restore([
+    { type: "message", message: { role: "system", toolsAdded: [...deferred].map(name => ({ name })) } },
+    { type: "message", message: { role: "system", toolsRemoved: [{ name: "custom_search" }, { name: "fetch_content" }] } },
+    { type: "message", message: { role: "assistant", toolsAdded: [{ name: "fetch_content" }] } },
+    { type: "message", message: { role: "system", toolsRemoved: [{ name: "custom_search" }], toolsAdded: [{ name: "custom_search" }] } },
+  ]), ["read", "custom_search", "bash", "load_web_tools"]);
+});
+
+test("restoring an earlier branch excludes declarations on the abandoned branch", () => {
+  const shared = { type: "message", message: { role: "system", toolsAdded: [{ name: "read" }] } };
+  const loaded = { type: "message", message: { role: "system", toolsAdded: [{ name: "fetch_content" }] } };
+  assert.deepEqual(restore([shared, loaded]), ["read", "bash", "fetch_content", "load_web_tools"]);
+  assert.deepEqual(restore([shared]), ["read", "bash", "load_web_tools"]);
 });
