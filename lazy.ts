@@ -13,7 +13,8 @@ const compactDescriptions: Record<string, string> = {
   "Get Search Content": "Read stored results or page slices by responseId. Select query/URL; paginate with offset/limit or findText.",
 };
 
-// 仅精简模型可见定义；参数的可选性、约束、执行函数及渲染器沿用上游。
+// 仅精简模型可见定义；provider 放宽为字符串或非空字符串数组，其余保留参数沿用上游约束。
+// 执行函数及渲染器沿用上游，避免包装层改变调用语义。
 // 未识别的工具原样保留；高级抓取参数不再声明，省略后由上游使用默认值。
 function compactDefinition(tool: ToolDefinition): ToolDefinition {
   const description = compactDescriptions[tool.label];
