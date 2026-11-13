@@ -39,7 +39,7 @@ the expanded top-level tool list and may miss the previous prompt cache.
 
 All four web tools expose shorter descriptions. Search and source-check
 `provider` accept a string or a non-empty string array; omit it for the
-configured default. Upstream still validates provider names.
+configured default. Provider selection and normalization follow upstream behavior.
 
 `fetch_content` exposes `url`, `urls`, `prompt`, and `mode`. Video options
 `timestamp`, `frames`, `model`, plus `forceClone` and `answerModel`, are hidden
