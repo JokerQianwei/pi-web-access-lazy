@@ -5,6 +5,7 @@ import type {
   ToolDefinition,
 } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
+import { Value } from "typebox/value";
 import {
   initialActiveTools,
   declaredToolNames,
@@ -52,6 +53,62 @@ test("interceptToolRegistration captures names and strips prompt metadata", () =
   assert.equal(registered.length, 1);
   assert.equal(registered[0].promptSnippet, undefined);
   assert.equal(registered[0].promptGuidelines, undefined);
+});
+
+// 注册接口的独立契约：自定义名称可用、必填字段保留、底层执行函数不替换。
+test("compact registration preserves names, constraints and execution", async () => {
+  const registered: ToolDefinition[] = [];
+  const pi = interceptToolRegistration({
+    registerTool(definition: ToolDefinition) { registered.push(definition); },
+  } as unknown as ExtensionAPI, new Set());
+  for (const label of ["Web Search", "Source Check"]) {
+    const original: ToolDefinition = {
+      ...tool("custom_" + registered.length), label,
+      parameters: Type.Object({
+        claim: Type.String(),
+        query: Type.Optional(Type.String()),
+        queries: Type.Optional(Type.Array(Type.String())),
+        workflow: Type.Optional(Type.String()),
+        provider: Type.Optional(Type.String()),
+      }),
+    };
+    pi.registerTool(original);
+    const compact = registered.at(-1)!;
+    assert.equal(compact.name, original.name);
+    assert.equal(compact.execute, original.execute);
+    assert.deepEqual(await compact.execute("call", { claim: "test" }, undefined, undefined, {} as never), {
+      content: [{ type: "text", text: "ok" }], details: {},
+    });
+    const schema = compact.parameters as ReturnType<typeof Type.Object>;
+    assert.deepEqual(schema.required, ["claim"]);
+    assert.equal(Value.Check(schema, { claim: "test", provider: "brave" }), true);
+    assert.equal(Value.Check(schema, { claim: "test", provider: ["brave", "exa"] }), true);
+    assert.equal(Value.Check(schema, { claim: "test", provider: [] }), false);
+    assert.equal(Value.Check(schema, { claim: "test", provider: [1] }), false);
+  }
+});
+
+test("fetch exposes only URL, prompt and mode; retrieval keeps every parameter", () => {
+  const registered: ToolDefinition[] = [];
+  const pi = interceptToolRegistration({
+    registerTool(definition: ToolDefinition) { registered.push(definition); },
+  } as unknown as ExtensionAPI, new Set());
+  const original: ToolDefinition = {
+    ...tool("custom_fetch"), label: "Fetch Content",
+    parameters: Type.Object(Object.fromEntries(
+      ["url", "urls", "prompt", "mode", "timestamp", "frames", "model", "forceClone", "answerModel"]
+        .map(key => [key, Type.Optional(Type.String())]),
+    )),
+  };
+  pi.registerTool(original);
+  const schema = registered[0].parameters as ReturnType<typeof Type.Object>;
+  assert.deepEqual(Object.keys(schema.properties), ["url", "urls", "prompt", "mode"]);
+  assert.equal(registered[0].execute, original.execute);
+  assert.equal(registered[0].name, "custom_fetch");
+  const retrieval = { ...tool("custom_retrieve"), label: "Get Search Content" };
+  pi.registerTool(retrieval);
+  assert.deepEqual(registered[1].parameters, retrieval.parameters);
+  assert.equal(registered[1].execute, retrieval.execute);
 });
 
 test("initialActiveTools removes deferred tools without reordering others", () => {

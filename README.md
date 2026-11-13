@@ -35,10 +35,22 @@ changing its system prompt or top-level tool list.
 On other models the tools still load correctly, but the next request contains
 the expanded top-level tool list and may miss the previous prompt cache.
 
+## Compact tool definitions
+
+All four web tools expose shorter descriptions. Search and source-check
+`provider` accept a string or a non-empty string array; omit it for the
+configured default. Provider selection and normalization follow upstream behavior.
+
+`fetch_content` exposes `url`, `urls`, `prompt`, and `mode`. Video options
+`timestamp`, `frames`, `model`, plus `forceClone` and `answerModel`, are hidden
+from model discovery; omitted values follow upstream defaults. Execution,
+return formats, custom tool names, and stored-content pagination are unchanged.
+
 ## Development
 
 ```bash
 npm install
+npm run smoke
 npm run check
 npm run test:e2e
 ```
@@ -49,7 +61,7 @@ requires working Pi authentication. Override the model with
 
 ## Upstream version
 
-Version 0.1.1 bundles `pi-web-access` 0.18.0. Upstream is imported through a
+Version 0.1.2 bundles `pi-web-access` 0.18.0. Upstream is imported through a
 small `ExtensionAPI` proxy; its implementation is not copied into this
 repository.
 
