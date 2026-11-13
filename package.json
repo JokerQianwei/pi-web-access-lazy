@@ -1,9 +1,10 @@
 {
   "name": "pi-web-access-lazy",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Lazy tool loading for pi-web-access.",
   "type": "module",
   "scripts": {
+    "smoke": "node --test tests/*.test.ts",
     "test": "node --test tests/*.test.ts",
     "test:e2e": "node tests/e2e.mjs",
     "typecheck": "tsc",
