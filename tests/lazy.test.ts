@@ -12,7 +12,38 @@ import {
   interceptToolRegistration,
   newlyAvailableTools,
   withoutPromptMetadata,
+  webToolMode,
 } from "../lazy.ts";
+
+test("channel policy keeps Codex and other providers on their existing loader path", () => {
+  const model = { provider: "openai-codex", api: "openai-codex-responses", id: "gpt-6.1-sol" };
+  for (const variant of [
+    model, { ...model, id: "gpt-6-astra" }, { ...model, id: "gpt-unknown" },
+    { ...model, api: "openai-responses" }, { ...model, provider: "openai" },
+  ]) {
+    assert.equal(webToolMode(variant), "loader");
+  }
+  for (const provider of ["tencent-intranet", "codebuddy"]) {
+    assert.equal(webToolMode({ ...model, provider }), "upfront");
+  }
+  for (const provider of ["joker-dmit", "ryan-dmit"]) {
+    assert.equal(webToolMode({ ...model, provider }), "before-run");
+  }
+  assert.equal(webToolMode(), "loader");
+  assert.equal(webToolMode({ ...model, provider: "other" }), "loader");
+  assert.equal(webToolMode({ provider: "tencent-intranet-test" }), "loader");
+  assert.equal(webToolMode({ provider: "constructor" }), "loader");
+});
+
+test("upfront startup keeps all registered web tools and appends missing tools in source order", () => {
+  const web = new Set(["custom_search", "fetch_content"]);
+  const initial = initialActiveTools(["read", "custom_search", "bash"], web, "load_web_tools", web);
+  assert.deepEqual(initial, ["read", "custom_search", "bash", "load_web_tools"]);
+  const added = newlyAvailableTools(initial, web, web);
+  assert.deepEqual([...initial, ...added],
+    ["read", "custom_search", "bash", "load_web_tools", "fetch_content"]);
+  assert.deepEqual(newlyAvailableTools([...initial, ...added], web, web), []);
+});
 
 function tool(name = "web_search"): ToolDefinition {
   return {
