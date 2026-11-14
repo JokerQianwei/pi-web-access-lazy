@@ -5,6 +5,18 @@ import type {
 } from "@earendil-works/pi-coding-agent";
 import { Type, type TObject } from "typebox";
 
+const providerModes = new Map<string, "upfront" | "before-run">([
+  ["tencent-intranet", "upfront"],
+  ["codebuddy", "upfront"],
+  ["joker-dmit", "before-run"],
+  ["ryan-dmit", "before-run"],
+]);
+
+// 所有通道判断集中在此；DMIT 接入原生能力时只需改对应策略。
+export function webToolMode(model?: { provider: string }): "upfront" | "before-run" | "loader" {
+  return model ? providerModes.get(model.provider) ?? "loader" : "loader";
+}
+
 // 上游版本固定，按稳定的 label 识别职责，保留用户自定义工具名和正文里的续读工具名。
 const compactDescriptions: Record<string, string> = {
   "Web Search": "Search the web and return answers with source URLs. Prefer varied queries for research. Omit provider to use the configured default.",
